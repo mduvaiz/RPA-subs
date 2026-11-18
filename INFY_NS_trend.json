@@ -1,0 +1,119 @@
+{
+  "company_name": "Infosys Limited",
+  "symbol": "INFY.NS",
+  "exchange": "NSI",
+  "trend": {
+    "latest_close": 1012.2000122070312,
+    "latest_date": "2026-10-12",
+    "changes_percent": {
+      "5_trading_days": -0.8133256044065409,
+      "21_trading_days": -2.2028973713013285,
+      "126_trading_days": -22.341285071460188,
+      "one_year": -29.685616547025955
+    },
+    "ma50": 1091.715001220703,
+    "ma200": 1231.0542803955077,
+    "one_year_high": 1654.00830078125,
+    "one_year_low": 985.2999877929688,
+    "verdict": "Downtrend"
+  },
+  "fundamentals": {
+    "available": true,
+    "source_url": "https://www.screener.in/company/INFY/",
+    "about": "Infosys Ltd provides consulting, technology, outsourcing and next-generation digital services to enable clients to execute strategies for their digital transformation. [1] It is the 2nd largest Information Technology company in India behind TCS. [2]",
+    "ratios": [
+      {
+        "name": "Market Cap",
+        "value": "\u20b9 4,10,758 Cr."
+      },
+      {
+        "name": "Current Price",
+        "value": "\u20b9 1,012"
+      },
+      {
+        "name": "High / Low",
+        "value": "\u20b9 1,728 / 980"
+      },
+      {
+        "name": "Stock P/E",
+        "value": "13.2"
+      },
+      {
+        "name": "Book Value",
+        "value": "\u20b9 194"
+      },
+      {
+        "name": "Dividend Yield",
+        "value": "4.75 %"
+      },
+      {
+        "name": "ROCE",
+        "value": "45.6 %"
+      },
+      {
+        "name": "ROE",
+        "value": "35.7 %"
+      },
+      {
+        "name": "Face Value",
+        "value": "\u20b9 5.00"
+      }
+    ],
+    "growth": [
+      [
+        "Compounded Sales Growth"
+      ],
+      [
+        "10 Years:",
+        "11%"
+      ],
+      [
+        "5 Years:",
+        "12%"
+      ],
+      [
+        "3 Years:",
+        "6%"
+      ],
+      [
+        "TTM:",
+        "11%"
+      ]
+    ],
+    "quarters": [
+      {
+        "quarter": "Sep 2025",
+        "sales": "36,907",
+        "net_profit": "7,759"
+      },
+      {
+        "quarter": "Dec 2025",
+        "sales": "37,996",
+        "net_profit": "7,363"
+      },
+      {
+        "quarter": "Mar 2026",
+        "sales": "38,641",
+        "net_profit": "7,975"
+      },
+      {
+        "quarter": "Jun 2026",
+        "sales": "39,957",
+        "net_profit": "7,249"
+      }
+    ],
+    "pros": [
+      "Company is almost debt free.",
+      "Stock is providing a good dividend yield of 4.68%.",
+      "Company has a good return on equity (ROE) track record: 3 Years ROE 34.1%",
+      "Company has been maintaining a healthy dividend payout of 68.8%"
+    ],
+    "cons": [
+      "Promoter holding has decreased over last quarter: -0.56%",
+      "The company has delivered a poor sales growth of 11.6% over past five years.",
+      "Promoter holding is low: 13.8%"
+    ]
+  },
+  "source_url": "https://www.screener.in/company/INFY/",
+  "checked": "2026-10-12 14:45:10 India Standard Time"
+}

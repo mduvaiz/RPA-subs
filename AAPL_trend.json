@@ -1,0 +1,26 @@
+{
+  "company_name": "Apple Inc.",
+  "symbol": "AAPL",
+  "exchange": "NMS",
+  "trend": {
+    "latest_close": 336.6400146484375,
+    "latest_date": "2026-10-09",
+    "changes_percent": {
+      "5_trading_days": 0.8840577138804907,
+      "21_trading_days": 3.083567718520227,
+      "126_trading_days": 29.468965766547374,
+      "one_year": 37.75983998857061
+    },
+    "ma50": 322.3565734863281,
+    "ma200": 290.40232498168945,
+    "one_year_high": 341.07000732421875,
+    "one_year_low": 244.3673095703125,
+    "verdict": "Uptrend"
+  },
+  "fundamentals": {
+    "available": false,
+    "reason": "Fundamentals are only scraped for .NS and .BO listings."
+  },
+  "source_url": null,
+  "checked": "2026-10-12 14:41:26 India Standard Time"
+}
