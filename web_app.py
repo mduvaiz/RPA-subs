@@ -2,7 +2,7 @@ import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-from market_data import snapshot
+from market_data import LookupSuggestionError, NoPublicEquityError, snapshot
 
 
 HTML = """<!doctype html>
@@ -30,6 +30,7 @@ HTML = """<!doctype html>
       font:700 15px Arial, sans-serif; cursor:pointer; }
     button:hover { background:#095e59; } button:disabled { opacity:.6; cursor:wait; }
     #status { min-height:24px; color:var(--muted); font:14px Arial, sans-serif; }
+    #status button { margin-left:8px; padding:7px 12px; font-size:13px; }
     .hero, .panel { background:var(--card); border:1px solid var(--line); border-radius:6px; }
     .hero { padding:28px; display:flex; justify-content:space-between; gap:20px; align-items:start; }
     .hero h2 { margin:6px 0 5px; font-size:34px; font-weight:500; }
@@ -66,10 +67,14 @@ HTML = """<!doctype html>
     const row = (label, value) => `<dt>${esc(label)}</dt><dd>${esc(value)}</dd>`;
     form.addEventListener('submit', async event => {
       event.preventDefault(); const name = input.value.trim(); if (!name) return;
-      const button = form.querySelector('button'); button.disabled = true; status.textContent = 'Looking up live data...'; result.hidden = true;
+      const button = form.querySelector('button'); window.marketLensSuggestion = null;
+      button.disabled = true; status.textContent = 'Looking up live data...'; result.hidden = true;
       try {
         const response = await fetch(`/api/company?name=${encodeURIComponent(name)}`), data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Could not load company data.');
+        if (!response.ok) {
+          window.marketLensSuggestion = data.suggestion || null;
+          throw new Error(data.error || 'Could not load company data.');
+        }
         const direction = data.change >= 0 ? 'up' : 'down', arrow = data.change >= 0 ? '▲' : '▼';
         result.innerHTML = `<div class="hero"><div><div class="symbol">${esc(data.symbol)} · ${esc(data.exchange)}</div><h2>${esc(data.name)}</h2><div>${esc(data.sector)} · ${esc(data.industry)}</div></div>
           <div class="price"><strong>${esc(data.current_price)}</strong><span class="change ${direction}">${arrow} ${esc(data.change_amount)} (${esc(data.change_percent)})</span></div></div>
@@ -78,7 +83,23 @@ HTML = """<!doctype html>
           <div class="panel"><h3>Valuation</h3><dl>${row('Market cap', data.market_cap)}${row('P/E ratio', data.pe_ratio)}${row('Forward P/E', data.forward_pe)}${row('Dividend yield', data.dividend_yield)}</dl></div>
           <div class="panel summary"><h3>Business summary</h3>${esc(data.summary)}</div></div>`;
         result.hidden = false; status.textContent = `Checked ${data.checked}`;
-      } catch (error) { status.textContent = error.message; result.hidden = true; }
+      } catch (error) {
+        status.textContent = error.message;
+        if (window.marketLensSuggestion) {
+          const suggestion = window.marketLensSuggestion;
+          const suggestionButton = document.createElement('button');
+          suggestionButton.type = 'button';
+          suggestionButton.textContent = `Search ${suggestion}`;
+          suggestionButton.addEventListener('click', () => {
+            input.value = suggestion;
+            form.requestSubmit();
+          });
+          status.appendChild(document.createTextNode(' '));
+          status.appendChild(suggestionButton);
+        }
+        window.marketLensSuggestion = null;
+        result.hidden = true;
+      }
       button.disabled = false;
     });
   </script>
@@ -101,8 +122,32 @@ class Handler(BaseHTTPRequestHandler):
                 if not name:
                     raise ValueError("Enter a company name.")
                 body, content_type = json.dumps(lookup(name)).encode(), "application/json"
+            except LookupSuggestionError as error:
+                body, content_type = json.dumps({
+                    "error": str(error),
+                    "kind": "suggestion",
+                    "suggestion": error.suggestion,
+                }).encode(), "application/json"
+                self.send_response(404)
+                self.send_header("Content-Type", content_type)
+                self.end_headers()
+                self.wfile.write(body)
+                return
+            except NoPublicEquityError as error:
+                body, content_type = json.dumps({
+                    "error": str(error),
+                    "kind": "private_or_unlisted",
+                }).encode(), "application/json"
+                self.send_response(404)
+                self.send_header("Content-Type", content_type)
+                self.end_headers()
+                self.wfile.write(body)
+                return
             except (ValueError, LookupError, RuntimeError) as error:
-                body, content_type = json.dumps({"error": str(error)}).encode(), "application/json"
+                body, content_type = json.dumps({
+                    "error": str(error),
+                    "kind": "lookup_error" if isinstance(error, LookupError) else "invalid_request",
+                }).encode(), "application/json"
                 self.send_response(404 if isinstance(error, LookupError) else 400)
                 self.send_header("Content-Type", content_type)
                 self.end_headers()

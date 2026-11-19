@@ -1,6 +1,27 @@
 from datetime import datetime
+from difflib import SequenceMatcher
+import re
 
 import yfinance as yf
+
+
+class LookupSuggestionError(LookupError):
+    def __init__(self, company_name, suggestion):
+        self.company_name = company_name
+        self.suggestion = suggestion
+        super().__init__(
+            f"No exact public-company match found for '{company_name}'. "
+            f"Did you mean '{suggestion}'?"
+        )
+
+
+class NoPublicEquityError(LookupError):
+    def __init__(self, company_name):
+        self.company_name = company_name
+        super().__init__(
+            f"No publicly traded equity was found for '{company_name}'. "
+            "It may be a private company, or the name may be misspelled or unavailable in Yahoo Finance."
+        )
 
 
 def number(value):
@@ -27,16 +48,69 @@ def value_range(low, high, currency):
     return f"{money(low, currency)} - {money(high, currency)}"
 
 
+def normalize_company_name(value):
+    normalized = re.sub(r"[^a-z0-9]+", " ", str(value or "").lower()).strip()
+    normalized = re.sub(
+        r"\b(public limited|private limited|holdings?|incorporated|company|corporation|limited|plc|pbc|co|inc|corp|gmbh|nv|sa|ag)\b",
+        " ",
+        normalized,
+    )
+    return re.sub(r"\s+", " ", normalized).strip()
+
+
+def quote_name(quote):
+    return text(quote.get("longname") or quote.get("shortname"), "")
+
+
+def find_closest_equity(company_name, quotes):
+    if not quotes:
+        return None
+    normalized_query = normalize_company_name(company_name)
+    if not normalized_query:
+        return None
+    exact = []
+    candidates = []
+    for quote in quotes:
+        name = quote_name(quote)
+        normalized_name = normalize_company_name(name)
+
+        if normalized_name and normalized_name == normalized_query:
+            exact.append(quote)
+
+        if name:
+            name_score = SequenceMatcher(None, normalized_query, normalized_name).ratio()
+            candidates.append((name_score, name, quote))
+
+    if exact:
+        return next((item for item in exact if item.get("symbol", "").endswith(".NS")), exact[0]), None
+    if not candidates:
+        return None
+
+    score, name, quote = max(candidates, key=lambda item: item[0])
+    if score >= 0.84:
+        return None, name
+    return None, None
+
+
 def find_stock(company_name):
-    """Find an equity, preferring its NSE listing when available."""
+    """Find an exact equity match, returning suggestions instead of guessing."""
     try:
         quotes = yf.Search(company_name, max_results=10).quotes
     except Exception as error:
         raise RuntimeError("Could not search right now. Check your internet connection.") from error
     equities = [item for item in quotes if item.get("quoteType") == "EQUITY"]
     if not equities:
-        raise LookupError(f"No company found for '{company_name}'.")
-    quote = next((item for item in equities if item.get("symbol", "").endswith(".NS")), equities[0])
+        suggestions = [item for item in quotes if quote_name(item)]
+        _, suggestion = find_closest_equity(company_name, suggestions) or (None, None)
+        if suggestion:
+            raise LookupSuggestionError(company_name, suggestion)
+        raise NoPublicEquityError(company_name)
+
+    quote, suggestion = find_closest_equity(company_name, equities)
+    if suggestion:
+        raise LookupSuggestionError(company_name, suggestion)
+    if quote is None:
+        raise NoPublicEquityError(company_name)
     if not quote.get("symbol"):
         raise LookupError("The search result did not include a stock symbol.")
     return quote
@@ -96,5 +170,4 @@ def snapshot(company_name):
         "checked": datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S %Z"),
         "quote": quote,
         "details": details,
-        "fast_info": fast,
     }
