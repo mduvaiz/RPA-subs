@@ -1,7 +1,6 @@
 import json
 import os
 import sys
-from datetime import datetime
 from urllib.parse import quote
 
 import feedparser
@@ -140,6 +139,7 @@ def print_header(data):
     print(f"Price: {text(today.get('price'))} {today.get('currency', '')} | 1-year change: {text(trend['changes_percent'].get('one_year'))}% | Headlines: {len(data['news'])}")
     if data.get("news_note"):
         print(data["news_note"])
+    print("Data may be delayed. This tool is for research only, not financial advice.")
 
 
 def print_news(data):

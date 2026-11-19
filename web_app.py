@@ -2,7 +2,7 @@ import json
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-import yfinance as yf
+from market_data import snapshot
 
 
 HTML = """<!doctype html>
@@ -57,7 +57,7 @@ HTML = """<!doctype html>
     <form id="search"><input id="company" placeholder="Try Infosys, Tata Motors, or Apple" autocomplete="off"><button>Search</button></form>
     <div id="status">Enter a company name to begin.</div>
     <section id="result" hidden></section>
-    <footer>Data from Yahoo Finance via yfinance. Prices may be delayed.</footer>
+    <footer>Data from Yahoo Finance via yfinance. Prices may be delayed. For research only, not financial advice.</footer>
   </main>
   <script>
     const form = document.querySelector('#search'), input = document.querySelector('#company');
@@ -86,52 +86,8 @@ HTML = """<!doctype html>
 </html>"""
 
 
-def number(value):
-    return float(value) if value is not None else None
-
-
-def text(value, fallback="N/A"):
-    return str(value) if value not in (None, "") else fallback
-
-
 def lookup(company_name):
-    try:
-        quotes = yf.Search(company_name, max_results=10).quotes
-    except Exception as error:
-        raise RuntimeError("Could not search right now. Check your internet connection.") from error
-    equities = [item for item in quotes if item.get("quoteType") == "EQUITY"]
-    if not equities:
-        raise LookupError(f"No company found for '{company_name}'.")
-    quote = next((item for item in equities if item.get("symbol", "").endswith(".NS")), equities[0])
-    symbol = quote.get("symbol")
-    if not symbol:
-        raise LookupError("The search result did not include a stock symbol.")
-    ticker = yf.Ticker(symbol)
-    try:
-        fast = ticker.fast_info
-        current, previous = number(fast.get("lastPrice")), number(fast.get("previousClose"))
-        if current is None or previous is None:
-            raise ValueError
-    except Exception as error:
-        raise RuntimeError("Price information is not available right now.") from error
-    try:
-        details = ticker.info
-    except Exception:
-        details = {}
-    currency = text(fast.get("currency"), "USD")
-    change = current - previous
-    market_cap = number(fast.get("marketCap"))
-    market_cap_text = (f"INR {market_cap / 10_000_000:,.2f} crore" if currency == "INR" and market_cap else text(f"{currency} {market_cap:,.2f}" if market_cap else None))
-    return {"name": text(quote.get("longname") or quote.get("shortname"), company_name), "symbol": symbol,
-            "exchange": text(quote.get("exchange")), "sector": text(quote.get("sector")), "industry": text(quote.get("industry")),
-            "currency": currency, "current_price": f"{currency} {current:,.2f}", "change": change,
-            "change_amount": f"{currency} {abs(change):,.2f}", "change_percent": f"{change / previous * 100:+.2f}%",
-            "day_range": f"{currency} {number(fast.get('dayLow')):,.2f} - {currency} {number(fast.get('dayHigh')):,.2f}",
-            "year_range": f"{currency} {number(fast.get('yearLow')):,.2f} - {currency} {number(fast.get('yearHigh')):,.2f}",
-            "market_cap": market_cap_text, "country": text(details.get("country")), "employees": text(details.get("fullTimeEmployees")),
-            "website": text(details.get("website")), "pe_ratio": text(details.get("trailingPE")), "forward_pe": text(details.get("forwardPE")),
-            "dividend_yield": f"{details['dividendYield']:.2f}%" if details.get("dividendYield") is not None else "N/A",
-            "summary": text(details.get("longBusinessSummary")), "checked": __import__("datetime").datetime.now().astimezone().strftime("%Y-%m-%d %H:%M:%S %Z")}
+    return snapshot(company_name)
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -161,8 +117,8 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def log_message(self, format, *args):
-        return
+    def log_message(self, *args):
+        del args
 
 
 if __name__ == "__main__":

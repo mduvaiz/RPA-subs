@@ -1,13 +1,6 @@
 import sys
-from datetime import datetime
 
-import yfinance as yf
-
-
-def money(value, currency):
-    if value is None:
-        return "N/A"
-    return f"{currency} {value:,.2f}"
+from market_data import snapshot
 
 
 def main():
@@ -17,53 +10,22 @@ def main():
         return
 
     try:
-        quotes = yf.Search(company_name, max_results=10).quotes
-    except Exception:
-        print("Could not search for that company. Please check your internet connection.")
+        data = snapshot(company_name)
+    except (LookupError, RuntimeError) as error:
+        print(error)
         return
 
-    equities = [quote for quote in quotes if quote.get("quoteType") == "EQUITY"]
-    if not equities:
-        print(f"No company found for '{company_name}'.")
-        return
-
-    quote = next((item for item in equities if item.get("symbol", "").endswith(".NS")), equities[0])
-    symbol = quote.get("symbol")
-    if not symbol:
-        print("The search result did not include a stock symbol.")
-        return
-
-    try:
-        ticker = yf.Ticker(symbol)
-        info = ticker.fast_info
-        current = info.get("lastPrice")
-        previous = info.get("previousClose")
-        if current is None or previous is None:
-            raise ValueError("missing price")
-    except Exception:
-        print("Price information is not available right now.")
-        return
-
-    try:
-        details = ticker.info
-    except Exception:
-        details = {}
-
-    currency = info.get("currency") or ""
-    change = current - previous
-    percent = change / previous * 100 if previous else 0
+    quote = data["quote"]
+    details = data["details"]
+    change = data["change"]
     arrow = "▲" if change >= 0 else "▼"
-    market_cap = info.get("marketCap")
-    market_cap_text = (f"INR {market_cap / 10_000_000:,.2f} crore"
-                       if currency == "INR" and market_cap else money(market_cap, currency))
-    display_name = quote.get("longname") or quote.get("shortname") or company_name
 
     print("\n" + "=" * 48)
-    print(f"{display_name} ({symbol})")
+    print(f"{data['name']} ({data['symbol']})")
     print("=" * 48)
     print(f"Exchange: {quote.get('exchange', 'N/A')}")
-    print(f"Sector: {quote.get('sector', 'N/A')}")
-    print(f"Industry: {quote.get('industry', 'N/A')}")
+    print(f"Sector: {data['sector']}")
+    print(f"Industry: {data['industry']}")
     fields = (
         ("Website", "website"),
         ("Country", "country"),
@@ -82,12 +44,12 @@ def main():
             elif key == "52WeekChange":
                 value = f"{value * 100:.2f}%"
             print(f"{label}: {value}")
-    print(f"Current price: {money(current, currency)}")
-    print(f"Day change: {arrow} {money(abs(change), currency)} ({percent:+.2f}%)")
-    print(f"Day range: {money(info.get('dayLow'), currency)} - {money(info.get('dayHigh'), currency)}")
-    print(f"52-week range: {money(info.get('yearLow'), currency)} - {money(info.get('yearHigh'), currency)}")
-    print(f"Market cap: {market_cap_text}")
-    print(f"Checked: {datetime.now().astimezone().strftime('%Y-%m-%d %H:%M:%S %Z')}")
+    print(f"Current price: {data['current_price']}")
+    print(f"Day change: {arrow} {data['change_amount']} ({data['change_percent']})")
+    print(f"Day range: {data['day_range']}")
+    print(f"52-week range: {data['year_range']}")
+    print(f"Market cap: {data['market_cap']}")
+    print(f"Checked: {data['checked']}")
 
 
 if __name__ == "__main__":

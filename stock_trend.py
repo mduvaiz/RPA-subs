@@ -1,36 +1,11 @@
 import json
-import os
 import sys
 from datetime import datetime
 from pathlib import Path
 
 import requests
-import yfinance as yf
 from bs4 import BeautifulSoup
-from dotenv import load_dotenv
-
-
-load_dotenv()
-API_KEY = os.getenv("API_KEY")
-
-
-def find_stock(company_name):
-    """Find an equity, preferring its NSE listing when available."""
-    quotes = yf.Search(company_name, max_results=10).quotes
-    equities = [item for item in quotes if item.get("quoteType") == "EQUITY"]
-    if not equities:
-        raise LookupError(f"No company found for '{company_name}'.")
-    quote = next((item for item in equities if item.get("symbol", "").endswith(".NS")), equities[0])
-    if not quote.get("symbol"):
-        raise LookupError("The search result did not include a stock symbol.")
-    return quote
-
-
-def number(value):
-    try:
-        return float(value) if value is not None else None
-    except (TypeError, ValueError):
-        return None
+from market_data import find_stock, number
 
 
 def percentage(start, end):
@@ -39,6 +14,8 @@ def percentage(start, end):
 
 def price_trend(symbol):
     """Calculate trend figures from one year of daily prices."""
+    import yfinance as yf
+
     history = yf.Ticker(symbol).history(period="1y")
     if history.empty or "Close" not in history:
         raise RuntimeError("No price history is available for this stock.")
@@ -146,6 +123,7 @@ def print_report(data):
     print("Pros: " + "; ".join(fundamentals.get("pros", [])) if fundamentals.get("pros") else "Pros: N/A")
     print("Cons: " + "; ".join(fundamentals.get("cons", [])) if fundamentals.get("cons") else "Cons: N/A")
     print(f"\nSource URL: {data.get('source_url') or 'Yahoo Finance price history only'}")
+    print("Data may be delayed. This report is for research only, not financial advice.")
 
 
 def main():

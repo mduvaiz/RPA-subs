@@ -1,2 +1,15 @@
 .env
-.env.*
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Generated market data and reports
+*_trend.json
+*_report.md
+
+# Local tooling
+.pytest_cache/
+.coverage
+htmlcov/
