@@ -254,4 +254,3 @@ This project is licensed under the [MIT License](LICENSE).
 ## Disclaimer
 
 Market Lens is for education and research only. It does not provide investment advice, and it should not be treated as a source for making buy, sell, or hold decisions.
-```
